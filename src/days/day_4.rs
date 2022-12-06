@@ -90,7 +90,7 @@ pub fn day_4_func(_command: DayCommand, args: ArgMatches) -> Result<()> {
         line.clear();
         len = reader.read_line(&mut line)?;
     }
-    ProgressBar::finish(&spin);
+    ProgressBar::finish_using_style(&spin);
 
     let spin = ProgressBar::new_spinner();
     spin.enable_steady_tick(Duration::from_millis(100));
@@ -98,7 +98,7 @@ pub fn day_4_func(_command: DayCommand, args: ArgMatches) -> Result<()> {
     for i in threads {
         i.join().unwrap()?;
     }
-    ProgressBar::finish(&spin);
+    ProgressBar::finish_using_style(&spin);
 
     println!("{:?} overlapping tasks", count.lock().unwrap());
 
