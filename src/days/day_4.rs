@@ -6,8 +6,6 @@ use crate::utils::*;
 use std::fs::File;
 use std::io::BufRead;
 use std::io::BufReader;
-use std::io::Read;
-use std::sync::mpsc;
 use std::sync::{Arc, Mutex};
 use std::thread;
 
@@ -34,10 +32,9 @@ impl TryFrom<String> for Task {
 
 impl Task {
     pub fn contains(&self, task: &Task) -> bool {
-        if task.start >= self.start && task.length < self.length {
-            return true;
-        }
-        false
+        task.start >= self.start
+            && task.length <= self.length
+            && task.start + task.length <= self.start + self.length
     }
 }
 
