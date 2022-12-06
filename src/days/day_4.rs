@@ -8,6 +8,8 @@ use std::io::BufRead;
 use std::io::BufReader;
 use std::sync::{Arc, Mutex};
 use std::thread;
+use std::time::Duration;
+use indicatif::ProgressBar;
 
 #[derive(Debug)]
 struct Task {
@@ -52,7 +54,7 @@ pub fn day_4<'a>() -> Result<DayCommand<'a>> {
         .build()
 }
 
-pub fn day_4_func(command: DayCommand, args: ArgMatches) -> Result<()> {
+pub fn day_4_func(_command: DayCommand, args: ArgMatches) -> Result<()> {
     let path: String = args.get_one::<String>("file").unwrap().to_owned();
 
     let f = File::open(path)?;
@@ -62,9 +64,12 @@ pub fn day_4_func(command: DayCommand, args: ArgMatches) -> Result<()> {
     let mut threads = Vec::new();
     let mut len = reader.read_line(&mut line)?;
     let count = Arc::new(Mutex::new(0));
-
+    let spin = ProgressBar::new_spinner();
+    spin.enable_steady_tick(Duration::from_millis(100));
     while len != 0 {
         {
+            let length = threads.len().to_string();
+            spin.set_message(format!{"creating threads: {length}"});
             let line = line.clone();
             let count = Arc::clone(&count);
             threads.push(thread::spawn(move || -> Result<()> {
@@ -75,7 +80,6 @@ pub fn day_4_func(command: DayCommand, args: ArgMatches) -> Result<()> {
                 let tasks2 = Task::try_from(pair[1].to_string())?;
 
                 if tasks1.contains(&tasks2) || tasks2.contains(&tasks1) {
-                    println!("{:?}, {:?}", tasks1, tasks2);
                     *count.lock().unwrap() += 1;
                 }
 
@@ -86,10 +90,15 @@ pub fn day_4_func(command: DayCommand, args: ArgMatches) -> Result<()> {
         line.clear();
         len = reader.read_line(&mut line)?;
     }
+    ProgressBar::finish(&spin);
 
+    let spin = ProgressBar::new_spinner();
+    spin.enable_steady_tick(Duration::from_millis(100));
+    spin.set_message("running threads");
     for i in threads {
         i.join().unwrap()?;
     }
+    ProgressBar::finish(&spin);
 
     println!("{:?} overlapping tasks", count.lock().unwrap());
 
