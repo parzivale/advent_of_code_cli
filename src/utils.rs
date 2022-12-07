@@ -6,7 +6,7 @@ pub struct DayCommand<'a> {
     name: &'static str,
     about: &'static str,
     args: Vec<Arg>,
-    func: &'a dyn Fn(Self, ArgMatches) -> Result<()>,
+    func: &'a dyn Fn(ArgMatches) -> Result<()>,
 }
 
 impl<'a> From<DayCommand<'a>> for Command {
@@ -18,7 +18,7 @@ impl<'a> From<DayCommand<'a>> for Command {
 impl<'a> DayCommand<'a> {
     pub fn run(self, args: ArgMatches) -> Result<()> {
         let func = self.func;
-        func(self, args)
+        func(args)
     }
 
     pub fn get_name(&self) -> &'a str {
@@ -30,7 +30,7 @@ pub struct DayCommandBuilder<'a> {
     name: Option<&'static str>,
     about: Option<&'static str>,
     args: Vec<Arg>,
-    func: &'a dyn Fn(DayCommand, ArgMatches) -> Result<()>,
+    func: &'a dyn Fn(ArgMatches) -> Result<()>,
 }
 
 impl<'a> DayCommandBuilder<'a> {
@@ -39,7 +39,7 @@ impl<'a> DayCommandBuilder<'a> {
             name: None,
             about: None,
             args: Vec::new(),
-            func: &|_, _| Ok(()),
+            func: &|_| Ok(()),
         }
     }
 
@@ -63,7 +63,7 @@ impl<'a> DayCommandBuilder<'a> {
         self
     }
 
-    pub fn func(&mut self, func: &'a dyn Fn(DayCommand, ArgMatches) -> Result<()>) -> &mut Self {
+    pub fn func(&mut self, func: &'a dyn Fn(ArgMatches) -> Result<()>) -> &mut Self {
         self.func = func;
         self
     }

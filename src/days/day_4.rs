@@ -1,3 +1,4 @@
+
 use clap::Arg;
 use clap::ArgMatches;
 
@@ -7,8 +8,7 @@ use std::fs::File;
 use std::io::BufRead;
 use std::io::BufReader;
 use std::sync::{Arc, Mutex};
-use std::thread;
-use std::time::Duration;
+use std::time::{Duration,Instant};
 use indicatif::ProgressBar;
 
 #[derive(Debug)]
@@ -54,53 +54,42 @@ pub fn day_4<'a>() -> Result<DayCommand<'a>> {
         .build()
 }
 
-pub fn day_4_func(_command: DayCommand, args: ArgMatches) -> Result<()> {
+pub fn day_4_func(args: ArgMatches) -> Result<()> {
+    let time = Instant::now();
     let path: String = args.get_one::<String>("file").unwrap().to_owned();
 
     let f = File::open(path)?;
 
     let mut reader = BufReader::new(f);
     let mut line = String::new();
-    let mut threads = Vec::new();
-    let mut len = reader.read_line(&mut line)?;
-    let count = Arc::new(Mutex::new(0));
+    let mut not_eof:bool = reader.read_line(&mut line)? != 0;
+    let mut count = 0;
+    let mut total = 0;
     let spin = ProgressBar::new_spinner();
     spin.enable_steady_tick(Duration::from_millis(100));
-    while len != 0 {
+    spin.set_message("running command");
+    while not_eof {
         {
-            let length = threads.len().to_string();
-            spin.set_message(format!{"creating threads: {length}"});
+            total += 1;
             let line = line.clone();
-            let count = Arc::clone(&count);
-            threads.push(thread::spawn(move || -> Result<()> {
-                let line = line;
                 let pair = line.split(',').collect::<Vec<_>>();
-
                 let tasks1 = Task::try_from(pair[0].to_string())?;
                 let tasks2 = Task::try_from(pair[1].to_string())?;
-
                 if tasks1.contains(&tasks2) || tasks2.contains(&tasks1) {
-                    *count.lock().unwrap() += 1;
+                    count += 1;
+                }
                 }
 
-                Ok(())
-            }));
-        }
-
         line.clear();
-        len = reader.read_line(&mut line)?;
+        if reader.read_line(&mut line)? == 0 {
+            not_eof = false;
+        }
     }
-    ProgressBar::finish_using_style(&spin);
 
-    let spin = ProgressBar::new_spinner();
-    spin.enable_steady_tick(Duration::from_millis(100));
-    spin.set_message("running threads");
-    for i in threads {
-        i.join().unwrap()?;
-    }
-    ProgressBar::finish_using_style(&spin);
-
-    println!("{:?} overlapping tasks", count.lock().unwrap());
+    let time_taken = time.elapsed();
+    ProgressBar::finish_and_clear(&spin);
+    println!("Finished in {} milliseconds", time_taken.as_millis());
+    println!("Found {} overlapping tasks in {} pairs", count, total);
 
     Ok(())
 }
