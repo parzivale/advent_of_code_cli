@@ -15,5 +15,5 @@ pub enum Error {
     NumParse(#[from] std::num::ParseIntError),
 
     #[error(transparent)]
-    Time(#[from] std::time::SystemTimeError)
+    Time(#[from] std::time::SystemTimeError),
 }

@@ -1,24 +1,38 @@
+use std::time::Duration;
+
 use crate::prelude::*;
 use clap::{Arg, ArgMatches, Command};
+use indicatif::ProgressBar;
 
 #[derive(Clone)]
 pub struct DayCommand<'a> {
     name: &'static str,
     about: &'static str,
     args: Vec<Arg>,
+    subcommands: Vec<Command>,
     func: &'a dyn Fn(ArgMatches) -> Result<()>,
 }
 
 impl<'a> From<DayCommand<'a>> for Command {
     fn from(day: DayCommand<'a>) -> Self {
-        Command::new(day.name).about(day.about).args(day.args)
+        let req = !day.subcommands.is_empty();
+        Command::new(day.name)
+            .about(day.about)
+            .args(day.args)
+            .subcommands(day.subcommands)
+            .subcommand_required(req)
     }
 }
 
 impl<'a> DayCommand<'a> {
     pub fn run(self, args: ArgMatches) -> Result<()> {
         let func = self.func;
-        func(args)
+        let spin = ProgressBar::new_spinner();
+        spin.enable_steady_tick(Duration::from_millis(100));
+        spin.set_message("running command");
+        func(args)?;
+        ProgressBar::finish_and_clear(&spin);
+        Ok(())
     }
 
     pub fn get_name(&self) -> &'a str {
@@ -30,6 +44,7 @@ pub struct DayCommandBuilder<'a> {
     name: Option<&'static str>,
     about: Option<&'static str>,
     args: Vec<Arg>,
+    subcommands: Vec<Command>,
     func: &'a dyn Fn(ArgMatches) -> Result<()>,
 }
 
@@ -39,6 +54,7 @@ impl<'a> DayCommandBuilder<'a> {
             name: None,
             about: None,
             args: Vec::new(),
+            subcommands: Vec::new(),
             func: &|_| Ok(()),
         }
     }
@@ -60,6 +76,16 @@ impl<'a> DayCommandBuilder<'a> {
 
     pub fn args(&mut self, args: &mut Vec<Arg>) -> &mut Self {
         self.args.append(args);
+        self
+    }
+
+    pub fn subcommand(&mut self, subcommand: Command) -> &mut Self {
+        self.subcommands.push(subcommand);
+        self
+    }
+
+    pub fn subcommands(&mut self, subcommands: &mut Vec<Command>) -> &mut Self {
+        self.subcommands.append(subcommands);
         self
     }
 
@@ -90,6 +116,7 @@ impl<'a> DayCommandBuilder<'a> {
             about,
             args: self.args.to_owned(),
             func: self.func,
+            subcommands: self.subcommands.to_owned(),
         })
     }
 }
