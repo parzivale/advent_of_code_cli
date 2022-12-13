@@ -1,7 +1,11 @@
-use std::{time::{Duration, Instant}, rc::Rc, ops::Deref};
+use std::{
+    ops::Deref,
+    rc::Rc,
+    time::{Duration, Instant},
+};
 
 use crate::prelude::*;
-use clap::{ArgMatches, Command};
+use clap::Command;
 use indicatif::ProgressBar;
 
 #[derive(Clone)]
@@ -59,28 +63,24 @@ impl DayCommand {
             .find(|x| x.name == name)
             .ok_or(Error::CommandRunner("command part not found".to_string()))?;
 
-
-        let ids:Vec<&str> = args.ids().into_iter().map(|x| {x.as_str()}).collect();
+        let ids: Vec<&str> = args.ids().into_iter().map(|x| x.as_str()).collect();
 
         let mut func: Box<dyn Fn(ArgMatches) -> Result<()>>;
 
         func = Box::new(Rc::deref(&part.func));
 
         for i in ids {
-
-            if args.try_get_one::<bool>(i).is_err(){
+            if args.try_get_one::<bool>(i).is_err() {
                 continue;
             }
 
-
             if args.get_flag(i) {
                 func = match i {
-                    "time taken" => {Box::new(self.time_wrapper(func))},
-                    _ => {func}
+                    "time taken" => Box::new(self.time_wrapper(func)),
+                    _ => func,
                 };
             }
         }
-
 
         let spin = ProgressBar::new_spinner();
         spin.enable_steady_tick(Duration::from_millis(100));
@@ -88,12 +88,13 @@ impl DayCommand {
         func(args)?;
         spin.finish_and_clear();
         Ok(())
-
     }
 
-
-    fn time_wrapper<F: Fn(ArgMatches) -> Result<()>>(&self, f: F) -> impl Fn(ArgMatches) -> Result<()> {
-         move |args:ArgMatches|{
+    fn time_wrapper<F: Fn(ArgMatches) -> Result<()>>(
+        &self,
+        f: F,
+    ) -> impl Fn(ArgMatches) -> Result<()> {
+        move |args: ArgMatches| {
             let time = Instant::now();
             let res = f(args);
             let elapsed = time.elapsed().as_micros();
@@ -101,7 +102,6 @@ impl DayCommand {
             res
         }
     }
-
 
     pub fn get_name(&self) -> &str {
         self.name

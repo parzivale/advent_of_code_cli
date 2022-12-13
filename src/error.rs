@@ -17,6 +17,9 @@ pub enum Error {
     #[error(transparent)]
     NumParse(#[from] std::num::ParseIntError),
 
+    #[error("Failed to convert char to type: {0}")]
+    CharParse(String),
+
     #[error(transparent)]
     Time(#[from] std::time::SystemTimeError),
 }

@@ -16,7 +16,10 @@ fn main() -> Result<()> {
             .action(ArgAction::SetTrue)
             .conflicts_with("quiet"),
         Arg::new("quiet").short('q').action(ArgAction::SetTrue),
-        Arg::new("file").short('f').value_name("file").required(true),
+        Arg::new("file")
+            .short('f')
+            .value_name("file")
+            .required(true),
     ];
 
     let matches = Command::new("adv")

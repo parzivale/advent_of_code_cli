@@ -1,11 +1,4 @@
-use clap::ArgMatches;
-
 use crate::prelude::*;
-use crate::utils::*;
-use std::fs::File;
-use std::io::BufRead;
-use std::io::BufReader;
-use std::path::Path;
 
 #[derive(Debug)]
 struct Task {
@@ -41,7 +34,6 @@ impl Task {
 }
 
 pub fn day_4() -> Result<DayCommand> {
-
     let mut parts = vec![
         PartBuilder::new()
             .name("part_1")
