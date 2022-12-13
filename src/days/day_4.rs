@@ -1,15 +1,11 @@
-use clap::Arg;
 use clap::ArgMatches;
-use clap::Command;
 
 use crate::prelude::*;
 use crate::utils::*;
-use indicatif::ProgressBar;
 use std::fs::File;
 use std::io::BufRead;
 use std::io::BufReader;
 use std::path::Path;
-use std::time::{Duration, Instant};
 
 #[derive(Debug)]
 struct Task {
@@ -44,58 +40,36 @@ impl Task {
     }
 }
 
-pub fn day_4<'a>() -> Result<DayCommand<'a>> {
-    let mut args = vec![Arg::new("file")
-        .short('f')
-        .help("the file with the data")
-        .required(true)];
+pub fn day_4() -> Result<DayCommand> {
 
-    let mut subcommands = vec![
-        Command::new("part_1")
+    let mut parts = vec![
+        PartBuilder::new()
+            .name("part_1")
             .short_flag('1')
-            .about("part 1 of the challenge"),
-        Command::new("part_2")
+            .about("part 1 of the challenge")
+            .func(part_1)
+            .build()?,
+        PartBuilder::new()
+            .name("part_2")
             .short_flag('2')
-            .about("part 2 of the challenge"),
+            .about("part 2 of the challenge")
+            .func(part_2)
+            .build()?,
     ];
 
     DayCommandBuilder::new()
         .name("day_4")
-        .args(&mut args)
-        .subcommands(&mut subcommands)
-        .func(&day_4_func)
+        .parts(&mut parts)
         .about("the solution to the day 4 advent of code problem")
         .build()
 }
 
-pub fn day_4_func(args: ArgMatches) -> Result<()> {
-    let time = Instant::now();
-
+pub fn part_1(args: ArgMatches) -> Result<()> {
     let path: String = args.get_one::<String>("file").unwrap().to_owned();
 
     let path = Path::new(&path);
 
     let f = File::open(path)?;
-
-    let res = match args.subcommand().unwrap() {
-        ("part_1", _) => {
-            part_1(f)?;
-            Ok(())
-        }
-        ("part_2", _) => {
-            part_2(f)?;
-            Ok(())
-        }
-        _ => Ok(()),
-    };
-
-    let time_taken = time.elapsed();
-    println!("Finished in {} microseconds", time_taken.as_micros());
-
-    res
-}
-
-pub fn part_1(f: File) -> Result<()> {
     let mut reader = BufReader::new(f);
     let mut line = String::new();
     let mut not_eof: bool = reader.read_line(&mut line)? != 0;
@@ -125,7 +99,12 @@ pub fn part_1(f: File) -> Result<()> {
     Ok(())
 }
 
-pub fn part_2(f: File) -> Result<()> {
+pub fn part_2(args: ArgMatches) -> Result<()> {
+    let path: String = args.get_one::<String>("file").unwrap().to_owned();
+
+    let path = Path::new(&path);
+
+    let f = File::open(path)?;
     let mut reader = BufReader::new(f);
     let mut line = String::new();
     let mut not_eof: bool = reader.read_line(&mut line)? != 0;

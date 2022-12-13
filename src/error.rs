@@ -11,6 +11,9 @@ pub enum Error {
     #[error("Fail to create day. Cause: {0}")]
     CommandBuilder(String),
 
+    #[error("Failed to run day. Cause: {0}")]
+    CommandRunner(String),
+
     #[error(transparent)]
     NumParse(#[from] std::num::ParseIntError),
 

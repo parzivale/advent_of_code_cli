@@ -5,7 +5,7 @@ mod day_4;
 use day_1::*;
 use day_4::*;
 
-pub fn generate_days<'a>() -> Result<Vec<DayCommand<'a>>> {
+pub fn generate_days() -> Result<Vec<DayCommand>> {
     let days = vec![day_4()?, day_1()?];
     Ok(days)
 }
