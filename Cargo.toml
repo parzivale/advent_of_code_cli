@@ -7,6 +7,5 @@ edition = "2021"
 
 [dependencies]
 clap = "4.0.29"
-console = "0.15.2"
 indicatif = {version = "0.17.2", features = ["default", "improved_unicode"]}
 thiserror = "1.0.37"

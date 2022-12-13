@@ -1,20 +1,11 @@
-use std::fmt::Display;
-use std::fs::File;
-use std::io::{BufRead, BufReader};
-use std::iter::Sum;
-use std::path::Path;
-use std::time::Instant;
-
-use clap::{Arg, ArgMatches, Command};
-
 use crate::prelude::*;
-use crate::utils::{DayCommand, DayCommandBuilder};
+use std::fmt::Display;
+use std::iter::Sum;
 
 #[derive(PartialEq, PartialOrd, Clone, Copy, Eq, Ord)]
 pub struct Calories {
     total: u32,
 }
-
 
 impl TryFrom<String> for Calories {
     type Error = Error;
@@ -52,58 +43,34 @@ impl Calories {
     }
 }
 
-pub fn day_1<'a>() -> Result<DayCommand<'a>> {
-    let mut args = vec![Arg::new("file")
-        .short('f')
-        .help("the file with the data")
-        .required(true)];
-
-    let mut subcommands = vec![
-        Command::new("part_1")
+pub fn day_1() -> Result<DayCommand> {
+    let mut parts = vec![
+        PartBuilder::new()
+            .name("part 1")
+            .about("part 1 of the problem")
             .short_flag('1')
-            .about("part 1 of the challenge"),
-        Command::new("part_2")
+            .func(part_1)
+            .build()?,
+        PartBuilder::new()
+            .name("part 2")
+            .about("part 2 of the problem")
             .short_flag('2')
-            .about("part 2 of the challenge"),
+            .func(part_2)
+            .build()?,
     ];
 
     DayCommandBuilder::new()
         .name("day_1")
-        .args(&mut args)
-        .subcommands(&mut subcommands)
-        .func(&day_1_func)
+        .parts(&mut parts)
         .about("the solution to the day 1 advent of code problem")
         .build()
 }
 
-pub fn day_1_func(args: ArgMatches) -> Result<()> {
-    let time = Instant::now();
-
+pub fn part_1(args: ArgMatches) -> Result<()> {
     let path = args.get_one::<String>("file").unwrap();
     let path = Path::new(path);
 
     let f = File::open(path)?;
-
-    let res = match args.subcommand().unwrap() {
-        ("part_1", _) => {
-            part_1(f)?;
-            Ok(())
-        }
-        ("part_2", _) => {
-            part_2(f)?;
-            Ok(())
-        }
-        _ => Ok(()),
-    };
-
-    let time_taken = time.elapsed();
-
-    println!("Finished in {} microseconds", time_taken.as_micros());
-
-    res
-}
-
-pub fn part_1(f: File) -> Result<()> {
     let mut buf = String::new();
     let mut reader = BufReader::new(f);
     let mut eof = false;
@@ -127,7 +94,11 @@ pub fn part_1(f: File) -> Result<()> {
     Ok(())
 }
 
-pub fn part_2(f: File) -> Result<()> {
+pub fn part_2(args: ArgMatches) -> Result<()> {
+    let path = args.get_one::<String>("file").unwrap();
+    let path = Path::new(path);
+
+    let f = File::open(path)?;
     let mut buf = String::new();
     let mut reader = BufReader::new(f);
     let mut eof = false;
@@ -142,12 +113,13 @@ pub fn part_2(f: File) -> Result<()> {
             list.push(c);
             buf.clear()
         }
-
     }
 
-    list.sort_by(|a,b| b.cmp(a));
+    list.sort_by(|a, b| b.cmp(a));
 
-
-    println!("Top 3 elves have {} calories", list[..3].iter().copied().sum::<Calories>());
+    println!(
+        "Top 3 elves have {} calories",
+        list[..3].iter().copied().sum::<Calories>()
+    );
     Ok(())
 }

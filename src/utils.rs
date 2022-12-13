@@ -1,61 +1,166 @@
-use std::time::Duration;
+use std::{
+    ops::Deref,
+    rc::Rc,
+    time::{Duration, Instant},
+};
 
 use crate::prelude::*;
-use clap::{Arg, ArgMatches, Command};
+use clap::Command;
 use indicatif::ProgressBar;
 
 #[derive(Clone)]
-pub struct DayCommand<'a> {
+pub struct DayCommand {
     name: &'static str,
     about: &'static str,
-    args: Vec<Arg>,
-    subcommands: Vec<Command>,
-    func: &'a dyn Fn(ArgMatches) -> Result<()>,
+    parts: Vec<Part>,
 }
 
-impl<'a> From<DayCommand<'a>> for Command {
-    fn from(day: DayCommand<'a>) -> Self {
-        let req = !day.subcommands.is_empty();
-        Command::new(day.name)
-            .about(day.about)
-            .args(day.args)
-            .subcommands(day.subcommands)
-            .subcommand_required(req)
+#[derive(Clone)]
+pub struct Part {
+    name: &'static str,
+    short_flag: char,
+    func: Rc<dyn Fn(ArgMatches) -> Result<()>>,
+    about: &'static str,
+}
+
+pub struct DayCommandBuilder {
+    name: Option<&'static str>,
+    about: Option<&'static str>,
+    parts: Vec<Part>,
+}
+
+pub struct PartBuilder {
+    name: Option<&'static str>,
+    short_flag: Option<char>,
+    func: Rc<dyn Fn(ArgMatches) -> Result<()>>,
+    about: Option<&'static str>,
+}
+
+impl From<Part> for Command {
+    fn from(part: Part) -> Self {
+        Command::new(part.name)
+            .about(part.about)
+            .short_flag(part.short_flag)
     }
 }
 
-impl<'a> DayCommand<'a> {
-    pub fn run(self, args: ArgMatches) -> Result<()> {
-        let func = self.func;
+impl From<DayCommand> for Command {
+    fn from(day: DayCommand) -> Self {
+        Command::new(day.name)
+            .about(day.about)
+            .subcommands(day.parts)
+            .subcommand_required(true)
+    }
+}
+
+impl DayCommand {
+    pub fn run(&self, args: ArgMatches) -> Result<()> {
+        let (name, _) = args.subcommand().unwrap().1.subcommand().unwrap();
+
+        let part = self
+            .parts
+            .iter()
+            .find(|x| x.name == name)
+            .ok_or(Error::CommandRunner("command part not found".to_string()))?;
+
+        let ids: Vec<&str> = args.ids().into_iter().map(|x| x.as_str()).collect();
+
+        let mut func: Box<dyn Fn(ArgMatches) -> Result<()>>;
+
+        func = Box::new(Rc::deref(&part.func));
+
+        for i in ids {
+            if args.try_get_one::<bool>(i).is_err() {
+                continue;
+            }
+
+            if args.get_flag(i) {
+                func = match i {
+                    "time taken" => Box::new(self.time_wrapper(func)),
+                    _ => func,
+                };
+            }
+        }
+
         let spin = ProgressBar::new_spinner();
         spin.enable_steady_tick(Duration::from_millis(100));
         spin.set_message("running command");
         func(args)?;
-        ProgressBar::finish_and_clear(&spin);
+        spin.finish_and_clear();
         Ok(())
     }
 
-    pub fn get_name(&self) -> &'a str {
+    fn time_wrapper<F: Fn(ArgMatches) -> Result<()>>(
+        &self,
+        f: F,
+    ) -> impl Fn(ArgMatches) -> Result<()> {
+        move |args: ArgMatches| {
+            let time = Instant::now();
+            let res = f(args);
+            let elapsed = time.elapsed().as_micros();
+            println!("Time taken to execute command was {} microseconds", elapsed);
+            res
+        }
+    }
+
+    pub fn get_name(&self) -> &str {
         self.name
     }
 }
 
-pub struct DayCommandBuilder<'a> {
-    name: Option<&'static str>,
-    about: Option<&'static str>,
-    args: Vec<Arg>,
-    subcommands: Vec<Command>,
-    func: &'a dyn Fn(ArgMatches) -> Result<()>,
+impl PartBuilder {
+    pub fn new() -> Self {
+        PartBuilder {
+            name: None,
+            short_flag: None,
+            func: Rc::new(|_| Ok(())),
+            about: None,
+        }
+    }
+
+    pub fn name(&mut self, name: &'static str) -> &mut Self {
+        self.name = Some(name);
+        self
+    }
+
+    pub fn short_flag(&mut self, flag: char) -> &mut Self {
+        self.short_flag = Some(flag);
+        self
+    }
+
+    pub fn about(&mut self, about: &'static str) -> &mut Self {
+        self.about = Some(about);
+        self
+    }
+
+    pub fn func(&mut self, func: impl Fn(ArgMatches) -> Result<()> + 'static) -> &mut Self {
+        self.func = Rc::new(func);
+        self
+    }
+
+    pub fn build(&self) -> Result<Part> {
+        let name = self
+            .name
+            .ok_or(Error::CommandBuilder("name wasn't defined".to_string()))?;
+        let about = self.about.unwrap_or_default();
+        let short_flag = self.short_flag.unwrap_or(name.chars().last().unwrap());
+        let func = Rc::clone(&self.func);
+
+        Ok(Part {
+            name,
+            short_flag,
+            func,
+            about,
+        })
+    }
 }
 
-impl<'a> DayCommandBuilder<'a> {
+impl DayCommandBuilder {
     pub fn new() -> Self {
         DayCommandBuilder {
             name: None,
             about: None,
-            args: Vec::new(),
-            subcommands: Vec::new(),
-            func: &|_| Ok(()),
+            parts: Vec::new(),
         }
     }
 
@@ -69,54 +174,21 @@ impl<'a> DayCommandBuilder<'a> {
         self
     }
 
-    pub fn arg(&mut self, arg: Arg) -> &mut Self {
-        self.args.push(arg);
+    pub fn parts(&mut self, parts: &mut Vec<Part>) -> &mut Self {
+        self.parts.append(parts);
         self
     }
 
-    pub fn args(&mut self, args: &mut Vec<Arg>) -> &mut Self {
-        self.args.append(args);
-        self
-    }
+    pub fn build(&self) -> Result<DayCommand> {
+        let name = self
+            .name
+            .ok_or(Error::CommandBuilder("name wasn't defined".to_string()))?;
+        let about = self.about.unwrap_or_default();
+        let parts = match self.parts.len() {
+            0 => Err(Error::CommandBuilder("no parts were found".to_string())),
+            _ => Ok(self.parts.to_owned()),
+        }?;
 
-    pub fn subcommand(&mut self, subcommand: Command) -> &mut Self {
-        self.subcommands.push(subcommand);
-        self
-    }
-
-    pub fn subcommands(&mut self, subcommands: &mut Vec<Command>) -> &mut Self {
-        self.subcommands.append(subcommands);
-        self
-    }
-
-    pub fn func(&mut self, func: &'a dyn Fn(ArgMatches) -> Result<()>) -> &mut Self {
-        self.func = func;
-        self
-    }
-
-    pub fn build(&self) -> Result<DayCommand<'a>> {
-        let name = self.name;
-
-        if name.is_none() {
-            return Err(Error::CommandBuilder("name wasn't defined".to_string()));
-        }
-
-        let name: &'static str = name.unwrap();
-
-        let mut about = self.about;
-
-        if about.is_none() {
-            about = Some("");
-        }
-
-        let about: &'static str = about.unwrap();
-
-        Ok(DayCommand {
-            name,
-            about,
-            args: self.args.to_owned(),
-            func: self.func,
-            subcommands: self.subcommands.to_owned(),
-        })
+        Ok(DayCommand { name, about, parts })
     }
 }
