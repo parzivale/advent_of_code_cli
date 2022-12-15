@@ -10,6 +10,6 @@ use day_3::*;
 use day_4::*;
 
 pub fn generate_days() -> Result<Vec<DayCommand>> {
-    let days = vec![day_4()?, day_1()?, day_2()?, day_3()?];
+    let days = vec![day_1()?, day_2()?, day_3()?, day_4()?];
     Ok(days)
 }
