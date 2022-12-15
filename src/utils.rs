@@ -8,6 +8,44 @@ use crate::prelude::*;
 use clap::Command;
 use indicatif::ProgressBar;
 
+pub struct FileReader {
+    reader: BufReader<File>,
+    buf: String,
+}
+
+impl TryFrom<ArgMatches> for FileReader {
+    type Error = Error;
+    fn try_from(args: ArgMatches) -> Result<Self> {
+        let path = args.get_one::<String>("file").unwrap();
+        let path = Path::new(path);
+
+        let f = File::open(path)?;
+        Ok(Self {
+            reader: BufReader::new(f),
+            buf: String::new(),
+        })
+    }
+}
+
+impl Iterator for FileReader {
+    type Item = String;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.buf.clear();
+        let res = self.reader.read_line(&mut self.buf);
+
+        if res.is_err() {
+            return None;
+        }
+
+        if res.unwrap() == 0 {
+            return None;
+        }
+
+        Some(self.buf.clone().trim().to_string())
+    }
+}
+
 #[derive(Clone)]
 pub struct DayCommand {
     name: &'static str,

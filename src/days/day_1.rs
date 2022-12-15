@@ -10,7 +10,8 @@ pub struct Calories {
 impl TryFrom<String> for Calories {
     type Error = Error;
     fn try_from(s: String) -> Result<Self> {
-        let splits = s.split("\r\n").collect::<Vec<_>>();
+        let s = s.trim();
+        let splits = s.split(' ').collect::<Vec<_>>();
         let mut total = 0;
 
         for i in splits {
@@ -67,26 +68,21 @@ pub fn day_1() -> Result<DayCommand> {
 }
 
 pub fn part_1(args: ArgMatches) -> Result<()> {
-    let path = args.get_one::<String>("file").unwrap();
-    let path = Path::new(path);
-
-    let f = File::open(path)?;
-    let mut buf = String::new();
-    let mut reader = BufReader::new(f);
-    let mut eof = false;
+    let f = FileReader::try_from(args)?;
 
     let mut max = Calories::new();
+    let mut buf = String::new();
 
-    while !eof {
-        eof = reader.read_line(&mut buf)? == 0;
-        if buf.contains("\r\n\r\n") {
-            let s = &buf[..buf.len() - 4];
-            let c = Calories::try_from(s.to_string())?;
+    for i in f {
+        if i.is_empty() {
+            let c = Calories::try_from(buf.clone())?;
             if c > max {
                 max = c;
             }
             buf.clear();
         }
+        buf += &i;
+        buf += " ";
     }
 
     println!("Maximum calories found was {}", max);
@@ -95,24 +91,20 @@ pub fn part_1(args: ArgMatches) -> Result<()> {
 }
 
 pub fn part_2(args: ArgMatches) -> Result<()> {
-    let path = args.get_one::<String>("file").unwrap();
-    let path = Path::new(path);
+    let f = FileReader::try_from(args)?;
 
-    let f = File::open(path)?;
     let mut buf = String::new();
-    let mut reader = BufReader::new(f);
-    let mut eof = false;
 
     let mut list = Vec::new();
 
-    while !eof {
-        eof = reader.read_line(&mut buf)? == 0;
-        if buf.contains("\r\n\r\n") {
-            let s = &buf[..buf.len() - 4];
-            let c = Calories::try_from(s.to_string())?;
+    for i in f {
+        if i.is_empty() {
+            let c = Calories::try_from(buf.to_string())?;
             list.push(c);
             buf.clear()
         }
+        buf += &i;
+        buf += " ";
     }
 
     list.sort_by(|a, b| b.cmp(a));

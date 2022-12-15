@@ -97,19 +97,12 @@ pub fn day_2() -> Result<DayCommand> {
 }
 
 pub fn part_1(args: ArgMatches) -> Result<()> {
-    let path: String = args.get_one::<String>("file").unwrap().to_owned();
-
-    let path = Path::new(&path);
-
-    let f = File::open(path)?;
-    let mut reader = BufReader::new(f);
-    let mut line = String::new();
-    let mut not_eof: bool = reader.read_line(&mut line)? != 0;
+    let f = FileReader::try_from(args)?;
 
     let mut score = 0;
 
-    while not_eof {
-        let chars: Vec<_> = line.chars().filter(|x| x.is_alphabetic()).collect();
+    for i in f {
+        let chars: Vec<_> = i.chars().filter(|x| x.is_alphabetic()).collect();
         let (elf_move, player_move) = (chars[0], chars[1]);
 
         let elf_move = Rps::try_from(elf_move)?;
@@ -126,11 +119,6 @@ pub fn part_1(args: ArgMatches) -> Result<()> {
         } else if player_move == elf_move {
             score += 3;
         }
-
-        line.clear();
-        if reader.read_line(&mut line)? == 0 {
-            not_eof = false;
-        }
     }
 
     println!("The score for the player is {}", score);
@@ -139,19 +127,12 @@ pub fn part_1(args: ArgMatches) -> Result<()> {
 }
 
 pub fn part_2(args: ArgMatches) -> Result<()> {
-    let path: String = args.get_one::<String>("file").unwrap().to_owned();
-
-    let path = Path::new(&path);
-
-    let f = File::open(path)?;
-    let mut reader = BufReader::new(f);
-    let mut line = String::new();
-    let mut not_eof: bool = reader.read_line(&mut line)? != 0;
+    let f = FileReader::try_from(args)?;
 
     let mut score = 0;
 
-    while not_eof {
-        let chars: Vec<_> = line.chars().filter(|x| x.is_alphabetic()).collect();
+    for i in f{
+        let chars: Vec<_> = i.chars().filter(|x| x.is_alphabetic()).collect();
         let (elf_move, player_move) = (chars[0], chars[1]);
 
         let elf_move = Rps::try_from(elf_move)?;
@@ -168,11 +149,6 @@ pub fn part_2(args: ArgMatches) -> Result<()> {
             score += 6;
         } else if player_move == elf_move {
             score += 3;
-        }
-
-        line.clear();
-        if reader.read_line(&mut line)? == 0 {
-            not_eof = false;
         }
     }
     println!("The score for the player is {}", score);
