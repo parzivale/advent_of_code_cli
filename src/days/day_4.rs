@@ -57,32 +57,21 @@ pub fn day_4() -> Result<DayCommand> {
 }
 
 pub fn part_1(args: ArgMatches) -> Result<()> {
-    let path: String = args.get_one::<String>("file").unwrap().to_owned();
+    let f = FileReader::try_from(args)?;
 
-    let path = Path::new(&path);
-
-    let f = File::open(path)?;
-    let mut reader = BufReader::new(f);
-    let mut line = String::new();
-    let mut not_eof: bool = reader.read_line(&mut line)? != 0;
     let mut count = 0;
     let mut total = 0;
 
-    while not_eof {
+    for i in f {
         {
             total += 1;
-            let line = line.clone();
+            let line = i.clone();
             let pair = line.split(',').collect::<Vec<_>>();
             let tasks1 = Task::try_from(pair[0].to_string())?;
             let tasks2 = Task::try_from(pair[1].to_string())?;
             if tasks1.contains(&tasks2) || tasks2.contains(&tasks1) {
                 count += 1;
             }
-        }
-
-        line.clear();
-        if reader.read_line(&mut line)? == 0 {
-            not_eof = false;
         }
     }
 
