@@ -1,5 +1,5 @@
-pub use crate::error::Error;
-pub type Result<T> = std::result::Result<T, Error>;
+use std::error::*;
+pub type BoxResult<T> = std::result::Result<T, Box<dyn Error>>;
 pub use crate::utils::{DayCommand, DayCommandBuilder, FileReader, PartBuilder};
 
 pub use std::fs::File;

@@ -1,10 +1,14 @@
 use std::{
+    fmt::Display,
     ops::Deref,
     rc::Rc,
-    time::{Duration, Instant},
+    time::{Duration, Instant}, error::Error,
 };
 
-use crate::prelude::*;
+use crate::{
+    error::{DayCommandBuilderError, DayCommandError, FromArgs},
+    prelude::*,
+};
 use clap::Command;
 use indicatif::ProgressBar;
 
@@ -14,9 +18,11 @@ pub struct FileReader {
 }
 
 impl TryFrom<ArgMatches> for FileReader {
-    type Error = Error;
-    fn try_from(args: ArgMatches) -> Result<Self> {
-        let path = args.get_one::<String>("file").unwrap();
+    type Error = FromArgs;
+    fn try_from(args: ArgMatches) -> Result<Self, FromArgs> {
+        let path = args
+            .get_one::<String>("file")
+            .ok_or(FromArgs::FieldNotFound("path".to_string()))?;
         let path = Path::new(path);
 
         let f = File::open(path)?;
@@ -46,6 +52,12 @@ impl Iterator for FileReader {
     }
 }
 
+pub struct CommandResponse<T> {
+    value: T,
+    pretty_print: String,
+    info: String,
+}
+
 #[derive(Clone)]
 pub struct DayCommand {
     name: &'static str,
@@ -57,7 +69,7 @@ pub struct DayCommand {
 pub struct Part {
     name: &'static str,
     short_flag: char,
-    func: Rc<dyn Fn(ArgMatches) -> Result<()>>,
+    func: Rc<dyn Fn(ArgMatches) -> BoxResult<()>>,
     about: &'static str,
 }
 
@@ -70,9 +82,17 @@ pub struct DayCommandBuilder {
 pub struct PartBuilder {
     name: Option<&'static str>,
     short_flag: Option<char>,
-    func: Rc<dyn Fn(ArgMatches) -> Result<()>>,
+    func: Rc<dyn Fn(ArgMatches) -> Result<(), Box<dyn Error>>>,
     about: Option<&'static str>,
 }
+
+impl<T:Display> Display for CommandResponse<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} {}", self.pretty_print, self.value)
+    }
+}
+
+impl<T> CommandResponse<T> {}
 
 impl From<Part> for Command {
     fn from(part: Part) -> Self {
@@ -92,18 +112,18 @@ impl From<DayCommand> for Command {
 }
 
 impl DayCommand {
-    pub fn run(&self, args: ArgMatches) -> Result<()> {
+    pub fn run(&self, args: ArgMatches) -> BoxResult<()> {
         let (name, _) = args.subcommand().unwrap().1.subcommand().unwrap();
 
         let part = self
             .parts
             .iter()
             .find(|x| x.name == name)
-            .ok_or(Error::CommandRunner("command part not found".to_string()))?;
+            .ok_or(DayCommandError::CommandPartNotFound(name.to_string()))?;
 
         let ids: Vec<&str> = args.ids().into_iter().map(|x| x.as_str()).collect();
 
-        let mut func: Box<dyn Fn(ArgMatches) -> Result<()>>;
+        let mut func: Box<dyn Fn(ArgMatches) -> BoxResult<()>>;
 
         func = Box::new(Rc::deref(&part.func));
 
@@ -128,10 +148,10 @@ impl DayCommand {
         Ok(())
     }
 
-    fn time_wrapper<F: Fn(ArgMatches) -> Result<()>>(
+    fn time_wrapper<F: Fn(ArgMatches) -> BoxResult<()>>(
         &self,
         f: F,
-    ) -> impl Fn(ArgMatches) -> Result<()> {
+    ) -> impl Fn(ArgMatches) -> BoxResult<()> {
         move |args: ArgMatches| {
             let time = Instant::now();
             let res = f(args);
@@ -171,15 +191,13 @@ impl PartBuilder {
         self
     }
 
-    pub fn func(&mut self, func: impl Fn(ArgMatches) -> Result<()> + 'static) -> &mut Self {
+    pub fn func(&mut self, func: impl Fn(ArgMatches) -> BoxResult<()> + 'static) -> &mut Self {
         self.func = Rc::new(func);
         self
     }
 
-    pub fn build(&self) -> Result<Part> {
-        let name = self
-            .name
-            .ok_or(Error::CommandBuilder("name wasn't defined".to_string()))?;
+    pub fn build(&self) -> BoxResult<Part> {
+        let name = self.name.ok_or(DayCommandBuilderError::NameNotFound)?;
         let about = self.about.unwrap_or_default();
         let short_flag = self.short_flag.unwrap_or(name.chars().last().unwrap());
         let func = Rc::clone(&self.func);
@@ -217,13 +235,11 @@ impl DayCommandBuilder {
         self
     }
 
-    pub fn build(&self) -> Result<DayCommand> {
-        let name = self
-            .name
-            .ok_or(Error::CommandBuilder("name wasn't defined".to_string()))?;
+    pub fn build(&self) -> BoxResult<DayCommand> {
+        let name = self.name.ok_or(DayCommandBuilderError::NameNotFound)?;
         let about = self.about.unwrap_or_default();
         let parts = match self.parts.len() {
-            0 => Err(Error::CommandBuilder("no parts were found".to_string())),
+            0 => Err(DayCommandBuilderError::PartsNotFound),
             _ => Ok(self.parts.to_owned()),
         }?;
 

@@ -10,7 +10,7 @@ pub enum Rps {
 }
 
 impl Rps {
-    pub fn corrected_read(c: char, elf_move: &Rps) -> Result<Self> {
+    pub fn corrected_read(c: char, elf_move: &Rps) -> Result<Self, &'static str> {
         let t = match c {
             'X' => match elf_move {
                 Rps::Rock => Rps::Scissors,
@@ -24,9 +24,9 @@ impl Rps {
                 Rps::Scissors => Rps::Rock,
             },
             _ => {
-                return Err(Error::CharParse(
-                    "char not found for rock paper scissors".to_string(),
-                ))
+                return Err(
+                    "char not found for rock paper scissors"
+                )
             }
         };
         Ok(t)
@@ -34,8 +34,8 @@ impl Rps {
 }
 
 impl TryFrom<char> for Rps {
-    type Error = Error;
-    fn try_from(c: char) -> Result<Self> {
+    type Error = &'static str;
+    fn try_from(c: char) -> Result<Self, &'static str> {
         match c {
             'A' => Ok(Rps::Rock),
             'B' => Ok(Rps::Paper),
@@ -43,9 +43,7 @@ impl TryFrom<char> for Rps {
             'X' => Ok(Rps::Rock),
             'Y' => Ok(Rps::Paper),
             'Z' => Ok(Rps::Scissors),
-            _ => Err(Error::CharParse(
-                "char not found for rock paper scissors".to_string(),
-            )),
+            _ => Err("char not found for rock paper scissors"),
         }
     }
 }
@@ -73,7 +71,7 @@ impl PartialOrd for Rps {
     }
 }
 
-pub fn day_2() -> Result<DayCommand> {
+pub fn day_2() -> BoxResult<DayCommand> {
     let mut parts = vec![
         PartBuilder::new()
             .name("part 1")
@@ -96,7 +94,7 @@ pub fn day_2() -> Result<DayCommand> {
         .build()
 }
 
-pub fn part_1(args: ArgMatches) -> Result<()> {
+pub fn part_1(args: ArgMatches) -> BoxResult<()> {
     let f = FileReader::try_from(args)?;
 
     let mut score = 0;
@@ -108,17 +106,17 @@ pub fn part_1(args: ArgMatches) -> Result<()> {
         let elf_move = Rps::try_from(elf_move)?;
         let player_move = Rps::try_from(player_move)?;
 
-        match &player_move {
-            Rps::Rock => score += 1,
-            Rps::Paper => score += 2,
-            Rps::Scissors => score += 3,
-        }
+            match &player_move {
+                Rps::Rock => score += 1,
+                Rps::Paper => score += 2,
+                Rps::Scissors => score += 3,
+            }
 
-        if player_move > elf_move {
-            score += 6;
-        } else if player_move == elf_move {
-            score += 3;
-        }
+            if player_move > elf_move {
+                score += 6;
+            } else if player_move == elf_move {
+                score += 3;
+            }
     }
 
     println!("The score for the player is {}", score);
@@ -126,12 +124,12 @@ pub fn part_1(args: ArgMatches) -> Result<()> {
     Ok(())
 }
 
-pub fn part_2(args: ArgMatches) -> Result<()> {
+pub fn part_2(args: ArgMatches) -> BoxResult<()> {
     let f = FileReader::try_from(args)?;
 
     let mut score = 0;
 
-    for i in f{
+    for i in f {
         let chars: Vec<_> = i.chars().filter(|x| x.is_alphabetic()).collect();
         let (elf_move, player_move) = (chars[0], chars[1]);
 
