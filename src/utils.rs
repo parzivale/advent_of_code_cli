@@ -2,11 +2,11 @@ use std::{
     fmt::Display,
     ops::Deref,
     rc::Rc,
-    time::{Duration, Instant}, error::Error,
+    time::{Duration, Instant}, error::Error, io,
 };
 
 use crate::{
-    error::{DayCommandBuilderError, DayCommandError, FromArgs},
+    error::{DayCommandBuilderError, DayCommandError},
     prelude::*,
 };
 use clap::Command;
@@ -18,11 +18,10 @@ pub struct FileReader {
 }
 
 impl TryFrom<ArgMatches> for FileReader {
-    type Error = FromArgs;
-    fn try_from(args: ArgMatches) -> Result<Self, FromArgs> {
+    type Error = io::Error;
+    fn try_from(args: ArgMatches) -> Result<Self, io::Error> {
         let path = args
-            .get_one::<String>("file")
-            .ok_or(FromArgs::FieldNotFound("path".to_string()))?;
+            .get_one::<String>("file").unwrap();
         let path = Path::new(path);
 
         let f = File::open(path)?;
@@ -41,6 +40,7 @@ impl Iterator for FileReader {
         let res = self.reader.read_line(&mut self.buf);
 
         if res.is_err() {
+            eprintln!("error reading line, got err: {}", res.unwrap());
             return None;
         }
 
