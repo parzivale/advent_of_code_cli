@@ -1,12 +1,16 @@
-use std::cmp::Ordering;
-
 use crate::prelude::*;
 
-#[derive(PartialEq, Clone)]
+#[derive(Clone)]
 pub enum Rps {
     Rock,
     Paper,
     Scissors,
+}
+
+pub enum State {
+    Won,
+    Lost,
+    Draw,
 }
 
 impl Rps {
@@ -50,24 +54,24 @@ impl TryFrom<char> for Rps {
     }
 }
 
-impl PartialOrd for Rps {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+impl Rps {
+    fn has_won(&self, other: &Self) -> State {
         match self {
             Rps::Paper => match other {
-                Rps::Paper => Some(Ordering::Equal),
-                Rps::Rock => Some(Ordering::Greater),
-                Rps::Scissors => Some(Ordering::Less),
+                Rps::Paper => State::Draw,
+                Rps::Rock => State::Won,
+                Rps::Scissors => State::Lost,
             },
             Rps::Rock => match other {
-                Rps::Paper => Some(Ordering::Less),
-                Rps::Rock => Some(Ordering::Equal),
-                Rps::Scissors => Some(Ordering::Greater),
+                Rps::Paper => State::Lost,
+                Rps::Rock => State::Draw,
+                Rps::Scissors => State::Won,
             },
 
             Rps::Scissors => match other {
-                Rps::Paper => Some(Ordering::Greater),
-                Rps::Rock => Some(Ordering::Less),
-                Rps::Scissors => Some(Ordering::Equal),
+                Rps::Paper => State::Won,
+                Rps::Rock => State::Lost,
+                Rps::Scissors => State::Draw,
             },
         }
     }
@@ -114,11 +118,11 @@ pub fn part_1(args: ArgMatches) -> Result<()> {
             Rps::Scissors => score += 3,
         }
 
-        if player_move > elf_move {
-            score += 6;
-        } else if player_move == elf_move {
-            score += 3;
-        }
+            match player_move.has_won(&elf_move){
+                State::Won => score += 6,
+                State::Draw => score += 3,
+                _ => {}
+            }
     }
 
     println!("The score for the player is {}", score);
@@ -145,10 +149,10 @@ pub fn part_2(args: ArgMatches) -> Result<()> {
             Rps::Scissors => score += 3,
         }
 
-        if player_move > elf_move {
-            score += 6;
-        } else if player_move == elf_move {
-            score += 3;
+        match player_move.has_won(&elf_move){
+            State::Won => score += 6,
+            State::Draw => score += 3,
+            _ => {}
         }
     }
     println!("The score for the player is {}", score);
