@@ -1,25 +1,27 @@
+use std::io;
+
 use thiserror::Error;
 
 #[derive(Error, Debug)]
-pub enum Error {
-    #[error(transparent)]
-    Clap(#[from] clap::Error),
+pub enum FromArgs {
+    #[error("field {0} not found/specifed in args")]
+    FieldNotFound(String),
 
     #[error(transparent)]
-    IO(#[from] std::io::Error),
+    Io(#[from] io::Error),
+}
 
-    #[error("Fail to create day. Cause: {0}")]
-    CommandBuilder(String),
+#[derive(Error, Debug)]
+pub enum DayCommandError {
+    #[error("command part {0} not found")]
+    CommandPartNotFound(String),
+}
 
-    #[error("Failed to run day. Cause: {0}")]
-    CommandRunner(String),
+#[derive(Error, Debug)]
+pub enum DayCommandBuilderError {
+    #[error("name was not specified")]
+    NameNotFound,
 
-    #[error(transparent)]
-    NumParse(#[from] std::num::ParseIntError),
-
-    #[error("Failed to convert char to type: {0}")]
-    CharParse(String),
-
-    #[error(transparent)]
-    Time(#[from] std::time::SystemTimeError),
+    #[error("command parts were not specified")]
+    PartsNotFound,
 }

@@ -1,3 +1,5 @@
+use std::{num::ParseIntError};
+
 use crate::prelude::*;
 
 #[derive(Debug)]
@@ -7,8 +9,8 @@ struct Task {
 }
 
 impl TryFrom<String> for Task {
-    type Error = Error;
-    fn try_from(s: String) -> Result<Self> {
+    type Error = ParseIntError;
+    fn try_from(s: String) -> Result<Self, ParseIntError> {
         let s = s.replace("\r\n", "");
         let s_split = s.split('-').collect::<Vec<_>>();
 
@@ -33,7 +35,7 @@ impl Task {
     }
 }
 
-pub fn day_4() -> Result<DayCommand> {
+pub fn day_4() -> BoxResult<DayCommand> {
     let mut parts = vec![
         PartBuilder::new()
             .name("part_1")
@@ -56,7 +58,7 @@ pub fn day_4() -> Result<DayCommand> {
         .build()
 }
 
-pub fn part_1(args: ArgMatches) -> Result<()> {
+pub fn part_1(args: ArgMatches) -> BoxResult<()> {
     let f = FileReader::try_from(args)?;
 
     let mut count = 0;
@@ -80,7 +82,7 @@ pub fn part_1(args: ArgMatches) -> Result<()> {
     Ok(())
 }
 
-pub fn part_2(args: ArgMatches) -> Result<()> {
+pub fn part_2(args: ArgMatches) -> BoxResult<()> {
     let path: String = args.get_one::<String>("file").unwrap().to_owned();
 
     let path = Path::new(&path);

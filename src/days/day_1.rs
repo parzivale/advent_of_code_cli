@@ -1,6 +1,7 @@
 use crate::prelude::*;
 use std::fmt::Display;
 use std::iter::Sum;
+use std::num::ParseIntError;
 
 #[derive(PartialEq, PartialOrd, Clone, Copy, Eq, Ord)]
 pub struct Calories {
@@ -8,8 +9,8 @@ pub struct Calories {
 }
 
 impl TryFrom<String> for Calories {
-    type Error = Error;
-    fn try_from(s: String) -> Result<Self> {
+    type Error = ParseIntError;
+    fn try_from(s: String) -> Result<Self, ParseIntError> {
         let s = s.trim();
         let splits = s.split(' ').collect::<Vec<_>>();
         let mut total = 0;
@@ -44,7 +45,7 @@ impl Calories {
     }
 }
 
-pub fn day_1() -> Result<DayCommand> {
+pub fn day_1() -> BoxResult<DayCommand> {
     let mut parts = vec![
         PartBuilder::new()
             .name("part 1")
@@ -67,7 +68,7 @@ pub fn day_1() -> Result<DayCommand> {
         .build()
 }
 
-pub fn part_1(args: ArgMatches) -> Result<()> {
+pub fn part_1(args: ArgMatches) -> BoxResult<()> {
     let f = FileReader::try_from(args)?;
 
     let mut max = Calories::new();
@@ -75,9 +76,11 @@ pub fn part_1(args: ArgMatches) -> Result<()> {
 
     for i in f {
         if i.is_empty() {
-            let c = Calories::try_from(buf.clone())?;
-            if c > max {
-                max = c;
+            let c = Calories::try_from(buf.clone());
+            if let Ok(c) = c {
+                if c > max {
+                    max = c;
+                }
             }
             buf.clear();
         }
@@ -90,7 +93,7 @@ pub fn part_1(args: ArgMatches) -> Result<()> {
     Ok(())
 }
 
-pub fn part_2(args: ArgMatches) -> Result<()> {
+pub fn part_2(args: ArgMatches) -> BoxResult<()> {
     let f = FileReader::try_from(args)?;
 
     let mut buf = String::new();
@@ -99,9 +102,11 @@ pub fn part_2(args: ArgMatches) -> Result<()> {
 
     for i in f {
         if i.is_empty() {
-            let c = Calories::try_from(buf.to_string())?;
-            list.push(c);
-            buf.clear()
+            let c = Calories::try_from(buf.clone());
+            if let Ok(c) = c {
+                list.push(c);
+                buf.clear()
+                }
         }
         buf += &i;
         buf += " ";

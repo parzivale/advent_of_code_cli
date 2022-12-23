@@ -7,7 +7,7 @@ mod utils;
 use days::*;
 use prelude::*;
 
-fn main() -> Result<()> {
+fn main() -> BoxResult<()> {
     let commands = generate_days()?;
 
     let args = vec![

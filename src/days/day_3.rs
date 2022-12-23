@@ -9,7 +9,7 @@ pub struct Rucksack {
 #[derive(Debug)]
 pub struct Group {
     rucksacks: Vec<Rucksack>,
-    priority: i32
+    priority: i32,
 }
 
 impl From<&Vec<Rucksack>> for Group {
@@ -17,7 +17,7 @@ impl From<&Vec<Rucksack>> for Group {
         let value = &value[..3];
         let mut a = Group {
             rucksacks: value.to_vec(),
-            priority:0
+            priority: 0,
         };
 
         a.priority = a.priority();
@@ -55,16 +55,13 @@ impl Group {
 }
 
 impl TryFrom<String> for Rucksack {
-    type Error = Error;
-    fn try_from(value: String) -> Result<Self> {
+    type Error = &'static str;
+    fn try_from(value: String) -> Result<Self, &'static str> {
         let value = value.trim().to_string();
         if value.is_empty() {
-            return Err(Error::CharParse("Rucksack".to_string()));
+            return Err("Rucksack is empty!!");
         }
 
-        if value.len() % 2 != 0 {
-            return Err(Error::CharParse("Rucksack".to_string()));
-        }
 
         let (comp1, comp2) = value.split_at(value.len() / 2);
         let comp1 = comp1.to_string();
@@ -97,7 +94,7 @@ impl TryFrom<String> for Rucksack {
     }
 }
 
-pub fn day_3() -> Result<DayCommand> {
+pub fn day_3() -> BoxResult<DayCommand> {
     let mut parts = vec![
         PartBuilder::new()
             .name("part 1")
@@ -120,7 +117,7 @@ pub fn day_3() -> Result<DayCommand> {
         .build()
 }
 
-pub fn part_1(args: ArgMatches) -> Result<()> {
+pub fn part_1(args: ArgMatches) -> BoxResult<()> {
     let f = FileReader::try_from(args)?;
     let mut rucksacks = Vec::new();
 
@@ -135,20 +132,18 @@ pub fn part_1(args: ArgMatches) -> Result<()> {
     Ok(())
 }
 
-pub fn part_2(args: ArgMatches) -> Result<()> {
+pub fn part_2(args: ArgMatches) -> BoxResult<()> {
     let f = FileReader::try_from(args)?;
     let mut groups = Vec::new();
     let mut buf = Vec::new();
 
     for (n, i) in f.enumerate() {
         buf.push(Rucksack::try_from(i)?);
-        if (n + 1) % 3 == 0{
+        if (n + 1) % 3 == 0 {
             groups.push(Group::from(&buf));
             buf.clear();
         }
     }
-
-
 
     println!(
         "priorty of all the groups is {}",
